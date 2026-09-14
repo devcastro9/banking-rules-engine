@@ -1,0 +1,27 @@
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
+
+namespace movement_simulator.Models;
+
+[Table("movement_status")]
+[Index("Code", Name = "movement_status_code_key", IsUnique = true)]
+public partial class MovementStatus
+{
+    [Key]
+    [Column("id")]
+    public int Id { get; set; }
+
+    [Column("code")]
+    [StringLength(20)]
+    public string Code { get; set; } = null!;
+
+    [Column("description")]
+    [StringLength(100)]
+    public string Description { get; set; } = null!;
+
+    [InverseProperty("Status")]
+    public virtual ICollection<AccountMovement> AccountMovements { get; set; } = new List<AccountMovement>();
+}
