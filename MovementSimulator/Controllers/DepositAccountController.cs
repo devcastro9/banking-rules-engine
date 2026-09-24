@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using MovementSimulator.Data;
 using MovementSimulator.Models;
 using System;
@@ -11,18 +12,12 @@ namespace MovementSimulator.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class DepositAccountController : ControllerBase
+    public class DepositAccountController(AppDbContext dbcontext, ILogger<DepositAccountController> logger) : ControllerBase
     {
-        private readonly AppDbContext _dbcontext;
-
-        public DepositAccountController(AppDbContext dbcontext)
-        {
-            _dbcontext = dbcontext;
-        }
-
         [HttpGet("{clientId}")]
         public async Task<List<VDepositAccountsSummary>> GetAccountByClient(Guid clientId) {
-            return await _dbcontext.VDepositAccountsSummaries.Where(v => v.PersonId == clientId).ToListAsync();
+            logger.LogInformation("Fetching deposit accounts for client: {clientId}", clientId);
+            return await dbcontext.VDepositAccountsSummaries.Where(v => v.PersonId == clientId).ToListAsync();
         }
     }
 }
