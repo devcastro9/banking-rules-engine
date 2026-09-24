@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
-namespace movement_simulator.Models;
+namespace MovementSimulator.Models;
 
 [Table("currency")]
 [Index("Code", Name = "currency_code_key", IsUnique = true)]
@@ -20,11 +20,11 @@ public partial class Currency
 
     [Column("name")]
     [StringLength(50)]
-    public string Name { get; set; } = null!;
+    public string? Name { get; set; }
 
     [Column("symbol")]
     [StringLength(5)]
-    public string Symbol { get; set; } = null!;
+    public string? Symbol { get; set; }
 
     [InverseProperty("Currency")]
     public virtual ICollection<DepositAccount> DepositAccounts { get; set; } = new List<DepositAccount>();

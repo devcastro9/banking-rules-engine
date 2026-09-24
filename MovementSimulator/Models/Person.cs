@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
-namespace movement_simulator.Models;
+namespace MovementSimulator.Models;
 
 [Table("persons")]
 [Index("PersonTypeId", Name = "idx_persons_person_type_id")]

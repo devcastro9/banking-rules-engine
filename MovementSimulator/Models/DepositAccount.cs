@@ -4,11 +4,12 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
-namespace movement_simulator.Models;
+namespace MovementSimulator.Models;
 
 [Table("deposit_account")]
 [Index("AccountNumber", Name = "deposit_account_account_number_key", IsUnique = true)]
 [Index("AccountTypeId", Name = "idx_deposit_account_account_type_id")]
+[Index("CurrencyId", Name = "idx_deposit_account_currency_id")]
 [Index("PersonId", Name = "idx_deposit_account_person_id")]
 [Index("StatusId", Name = "idx_deposit_account_status_id")]
 public partial class DepositAccount

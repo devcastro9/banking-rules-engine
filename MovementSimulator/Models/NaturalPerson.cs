@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
-namespace movement_simulator.Models;
+namespace MovementSimulator.Models;
 
 [Table("natural_persons")]
 public partial class NaturalPerson

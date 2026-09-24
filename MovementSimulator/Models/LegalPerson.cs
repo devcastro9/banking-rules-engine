@@ -4,9 +4,10 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
-namespace movement_simulator.Models;
+namespace MovementSimulator.Models;
 
 [Table("legal_persons")]
+[Index("LegalEntityTypeId", Name = "idx_legal_persons_legal_entity_type_id")]
 public partial class LegalPerson
 {
     [Key]

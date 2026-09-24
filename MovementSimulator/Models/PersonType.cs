@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
-namespace movement_simulator.Models;
+namespace MovementSimulator.Models;
 
 [Table("person_type")]
 [Index("Code", Name = "person_type_code_key", IsUnique = true)]
@@ -20,7 +20,7 @@ public partial class PersonType
 
     [Column("description")]
     [StringLength(50)]
-    public string Description { get; set; } = null!;
+    public string? Description { get; set; }
 
     [InverseProperty("PersonType")]
     public virtual ICollection<Person> People { get; set; } = new List<Person>();

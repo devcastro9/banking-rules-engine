@@ -1,11 +1,14 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using movement_simulator.Models;
+using MovementSimulator.Models;
 
-namespace movement_simulator.Data;
+namespace MovementSimulator.Data;
 
 public partial class AppDbContext : DbContext
 {
-    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+    public AppDbContext(DbContextOptions<AppDbContext> options)
+        : base(options)
+    {
+    }
 
     public virtual DbSet<AccountMovement> AccountMovements { get; set; }
 
@@ -30,6 +33,8 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<Person> Persons { get; set; }
 
     public virtual DbSet<PersonType> PersonTypes { get; set; }
+
+    public virtual DbSet<VDepositAccountsSummary> VDepositAccountsSummaries { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -76,8 +81,6 @@ public partial class AppDbContext : DbContext
             entity.HasKey(e => e.Id).HasName("deposit_account_pkey");
 
             entity.Property(e => e.Id).HasDefaultValueSql("gen_random_uuid()");
-            entity.Property(e => e.CurrencyId).HasDefaultValue(1);
-            entity.Property(e => e.StatusId).HasDefaultValue(1);
 
             entity.HasOne(d => d.AccountType).WithMany(p => p.DepositAccounts)
                 .OnDelete(DeleteBehavior.Restrict)
@@ -122,6 +125,8 @@ public partial class AppDbContext : DbContext
         modelBuilder.Entity<MovementType>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("movement_type_pkey");
+
+            entity.Property(e => e.Sign).HasDefaultValue((short)0);
         });
 
         modelBuilder.Entity<NaturalPerson>(entity =>
@@ -148,6 +153,17 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("person_type_pkey");
         });
+
+        modelBuilder.Entity<VDepositAccountsSummary>(entity =>
+        {
+            entity.ToView("v_deposit_accounts_summary");
+
+            entity.Property(e => e.Currency).IsFixedLength();
+        });
+        modelBuilder.HasSequence("deposit_account_number_seq")
+            .HasMin(1000000000L)
+            .HasMax(9999999999L);
+        modelBuilder.HasSequence("transaction_number_seq");
 
         OnModelCreatingPartial(modelBuilder);
     }

@@ -1,0 +1,188 @@
+name: bank-rules-platform
+
+services:
+  postgres:
+    image: postgres:alpine
+    container_name: bank-rules-postgres
+    restart: on-failure:3
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      TZ: ${TZ}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+      - ./database/migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-appuser} -d ${POSTGRES_DB:-bank_rules}"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - bank-rules-network
+
+  kafka:
+    image: bitnami/kafka:3.9
+    container_name: bank-rules-kafka
+    restart: unless-stopped
+    environment:
+      KAFKA_CFG_NODE_ID: 1
+      KAFKA_CFG_PROCESS_ROLES: broker,controller
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+
+      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_CFG_NUM_PARTITIONS: 3
+      KAFKA_CFG_DEFAULT_REPLICATION_FACTOR: 1
+      KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_CFG_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_CFG_TRANSACTION_STATE_LOG_MIN_ISR: 1
+
+      KAFKA_KRAFT_CLUSTER_ID: ${KAFKA_CLUSTER_ID:-abcdefghijklmnopqrstuv}
+      ALLOW_PLAINTEXT_LISTENER: "yes"
+    ports:
+      - "${KAFKA_PORT:-9092}:9092"
+    volumes:
+      - kafka_data:/bitnami/kafka
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null 2>&1"
+        ]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+    networks:
+      - bank-rules-network
+
+  kafka-init:
+    image: bitnami/kafka:3.9
+    container_name: bank-rules-kafka-init
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        kafka-topics.sh \
+          --bootstrap-server kafka:9092 \
+          --create \
+          --if-not-exists \
+          --topic bank.movements.created.v1 \
+          --partitions 3 \
+          --replication-factor 1
+
+        kafka-topics.sh \
+          --bootstrap-server kafka:9092 \
+          --create \
+          --if-not-exists \
+          --topic bank.alerts.created.v1 \
+          --partitions 3 \
+          --replication-factor 1
+
+        echo "Kafka topics initialized successfully."
+    networks:
+      - bank-rules-network
+
+  transaction-api:
+    build:
+      context: ./apps/transaction-api
+      dockerfile: Dockerfile
+    container_name: bank-rules-transaction-api
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      ASPNETCORE_URLS: http://+:8080
+
+      ConnectionStrings__DefaultConnection: >-
+        Host=postgres;
+        Port=5432;
+        Database=${POSTGRES_DB:-bank_rules};
+        Username=${POSTGRES_USER:-appuser};
+        Password=${POSTGRES_PASSWORD:-appuser_password}
+
+      Kafka__BootstrapServers: kafka:9092
+      Kafka__MovementCreatedTopic: bank.movements.created.v1
+    ports:
+      - "${TRANSACTION_API_PORT:-8081}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+    networks:
+      - bank-rules-network
+
+  rules-engine:
+    build:
+      context: ./apps/rules-engine
+      dockerfile: Dockerfile
+    container_name: bank-rules-rules-engine
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
+      SERVER_PORT: 8080
+
+      SPRING_DATASOURCE_URL: >-
+        jdbc:postgresql://postgres:5432/${POSTGRES_DB:-bank_rules}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-appuser}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-appuser_password}
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
+
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_KAFKA_CONSUMER_GROUP_ID: bank-rules-engine
+      SPRING_KAFKA_CONSUMER_AUTO_OFFSET_RESET: earliest
+
+      BANK_RULES_KAFKA_MOVEMENT_TOPIC: bank.movements.created.v1
+      BANK_RULES_KAFKA_ALERT_TOPIC: bank.alerts.created.v1
+    ports:
+      - "${RULES_ENGINE_PORT:-8082}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+    networks:
+      - bank-rules-network
+
+  operations-portal:
+    build:
+      context: ./apps/operations-portal
+      dockerfile: Dockerfile
+    container_name: bank-rules-operations-portal
+    restart: unless-stopped
+    ports:
+      - "${OPERATIONS_PORTAL_PORT:-4200}:80"
+    depends_on:
+      - transaction-api
+      - rules-engine
+    networks:
+      - bank-rules-network
+
+volumes:
+  postgres_data:
+    name: bank-rules-postgres-data
+
+  kafka_data:
+    name: bank-rules-kafka-data
+
+networks:
+  bank-rules-network:
+    name: bank-rules-network
+    driver: bridge

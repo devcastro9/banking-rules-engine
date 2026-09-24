@@ -4,24 +4,27 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
-namespace movement_simulator.Models;
+namespace MovementSimulator.Models;
 
-[Table("movement_status")]
-[Index("Code", Name = "movement_status_code_key", IsUnique = true)]
-public partial class MovementStatus
+[Table("movement_type")]
+[Index("Code", Name = "movement_type_code_key", IsUnique = true)]
+public partial class MovementType
 {
     [Key]
     [Column("id")]
     public int Id { get; set; }
 
     [Column("code")]
-    [StringLength(20)]
+    [StringLength(30)]
     public string Code { get; set; } = null!;
 
     [Column("description")]
-    [StringLength(100)]
-    public string Description { get; set; } = null!;
+    [StringLength(150)]
+    public string? Description { get; set; }
 
-    [InverseProperty("Status")]
+    [Column("sign")]
+    public short? Sign { get; set; }
+
+    [InverseProperty("MovementType")]
     public virtual ICollection<AccountMovement> AccountMovements { get; set; } = new List<AccountMovement>();
 }

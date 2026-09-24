@@ -4,10 +4,11 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
-namespace movement_simulator.Models;
+namespace MovementSimulator.Models;
 
 [Table("account_movements")]
 [Index("AccountId", "CreatedAt", Name = "idx_account_movements_account_created_at", IsDescending = new[] { false, true })]
+[Index("AccountId", "StatusId", Name = "idx_account_movements_account_status_covering")]
 [Index("MovementTypeId", Name = "idx_account_movements_movement_type_id")]
 [Index("StatusId", Name = "idx_account_movements_status_id")]
 [Index("TransactionNumber", Name = "idx_account_movements_transaction_number")]

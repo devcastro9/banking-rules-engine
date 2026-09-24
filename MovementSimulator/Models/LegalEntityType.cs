@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
-namespace movement_simulator.Models;
+namespace MovementSimulator.Models;
 
 [Table("legal_entity_type")]
 [Index("Code", Name = "legal_entity_type_code_key", IsUnique = true)]
@@ -20,7 +20,7 @@ public partial class LegalEntityType
 
     [Column("description")]
     [StringLength(100)]
-    public string Description { get; set; } = null!;
+    public string? Description { get; set; }
 
     [InverseProperty("LegalEntityType")]
     public virtual ICollection<LegalPerson> LegalPeople { get; set; } = new List<LegalPerson>();
